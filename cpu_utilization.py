@@ -10,11 +10,6 @@ import h5py
 import json
 from tensorflow.keras.models import model_from_json, Sequential
 
-# Register the Sequential class
-@tf.keras.utils.register_keras_serializable()
-class Sequential(tf.keras.models.Sequential):
-    pass
-
 def load_model_without_time_major(filepath):
     with h5py.File(filepath, 'r') as f:
         model_config = f.attrs.get('model_config')
@@ -37,7 +32,10 @@ def load_model_without_time_major(filepath):
         remove_time_major(model_config)
         
         model_json = json.dumps(model_config)
-        model = model_from_json(model_json)
+        
+        # Specify the custom object during deserialization
+        custom_objects = {'Sequential': Sequential}
+        model = model_from_json(model_json, custom_objects=custom_objects)
         
         # Load weights into the model
         model.load_weights(filepath)
