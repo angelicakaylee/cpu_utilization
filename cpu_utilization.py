@@ -8,7 +8,10 @@ import tensorflow as tf
 import matplotlib.pyplot as plt
 import h5py
 import json
-from tensorflow.keras.models import model_from_json
+from tensorflow.keras.models import model_from_json, Sequential
+
+# Register the Sequential class
+tf.keras.utils.register_keras_serializable()(Sequential)
 
 def load_model_without_time_major(filepath):
     with h5py.File(filepath, 'r') as f:
@@ -51,13 +54,63 @@ def load_model_and_scalers():
     
     return model, feature_scaler, target_scaler
 
+def create_fourier_series(df, period, order):
+    t = np.arange(len(df))
+    for k in range(1, order + 1):
+        df[f'sin_{period}_{k}'] = np.sin(2 * np.pi * k * t / period)
+        df[f'cos_{period}_{k}'] = np.cos(2 * np.pi * k * t / period)
+    return df
+
 def preprocess_data(df):
-    # Placeholder function for data preprocessing
+    # Calculate IQR
+    Q1 = df['avg_cpu'].quantile(0.25)
+    Q3 = df['avg_cpu'].quantile(0.75)
+    IQR = Q3 - Q1
+
+    # Define a threshold to identify anomalies (e.g., 1.5 * IQR)
+    iqr_threshold = 1.5
+    lower_bound = Q1 - iqr_threshold * IQR
+    upper_bound = Q3 + iqr_threshold * IQR
+    anomalies_iqr = df[(df['avg_cpu'] < lower_bound) | (df['avg_cpu'] > upper_bound)]
+
+    # Mark anomalies
+    df['anomaly'] = (df['avg_cpu'] < lower_bound) | (df['avg_cpu'] > upper_bound)
+
+    # Interpolating anomalies
+    df['avg_cpu'] = np.where(df['anomaly'] == True, np.nan, df['avg_cpu'])
+    df['avg_cpu'] = df['avg_cpu'].interpolate(method='time')
+
+    # Drop the anomaly column as it's no longer needed
+    df = df.drop(columns=['anomaly'])
+
+    # Add polynomial trends
+    time_numeric = np.arange(len(df)).reshape(-1, 1)
+    degree = 2
+    poly = PolynomialFeatures(degree=degree)
+    time_poly = poly.fit_transform(time_numeric)
+    model = LinearRegression()
+    model.fit(time_poly, df['avg_cpu'])
+    trend = model.predict(time_poly)
+    df['trend'] = trend
+
+    # Add Fourier series
+    df = create_fourier_series(df, period=24, order=3)
+    df = create_fourier_series(df, period=24 * 7, order=3)
+    df['trend'] = trend
+
+    # Add lag features
+    max_lag = 36
+    for lag in range(1, max_lag + 1):
+        df[f'avg_cpu_lag_{lag}'] = df['avg_cpu'].shift(lag)
+    df.dropna(inplace=True)
+    
     return df
 
 def create_sliding_windows(data, window_size):
-    # Placeholder function for creating sliding windows
-    return np.array([data[i:i+window_size] for i in range(len(data) - window_size + 1)])
+    X = []
+    for i in range(len(data) - window_size + 1):
+        X.append(data[i:i+window_size])
+    return np.array(X)
 
 def main():
     # Load model and scalers
