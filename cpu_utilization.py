@@ -46,12 +46,12 @@ def load_model_without_time_major(filepath):
 
 def load_model_and_scalers():
     # Load the saved model and scalers
-    model = load_model_without_time_major(r'C:\Users\HP 15\OneDrive\Documents\Semester 6\FYP\Technical\model\best_model.h5')
+    model = load_model_without_time_major('best_model.h5')
     
-    with open(r'C:\Users\HP 15\OneDrive\Documents\Semester 6\FYP\Technical\model\feature_scaler.pkl', 'rb') as f:
+    with open('feature_scaler.pkl', 'rb') as f:
         feature_scaler = pickle.load(f)
     
-    with open(r'C:\Users\HP 15\OneDrive\Documents\Semester 6\FYP\Technical\model\target_scaler.pkl', 'rb') as f:
+    with open('target_scaler.pkl', 'rb') as f:
         target_scaler = pickle.load(f)
     
     return model, feature_scaler, target_scaler
