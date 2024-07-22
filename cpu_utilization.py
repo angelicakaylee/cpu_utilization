@@ -9,12 +9,12 @@ import matplotlib.pyplot as plt
 
 def load_model_and_scalers():
     # Load the saved model and scalers
-    model = tf.keras.models.load_model(r'C:\Users\HP 15\OneDrive\Documents\Semester 6\FYP\Technical\model\best_model.h5')
+    model = tf.keras.models.load_model('best_model.h5')
     
-    with open(r'C:\Users\HP 15\OneDrive\Documents\Semester 6\FYP\Technical\model\feature_scaler.pkl', 'rb') as f:
+    with open('feature_scaler.pkl', 'rb') as f:
         feature_scaler = pickle.load(f)
     
-    with open(r'C:\Users\HP 15\OneDrive\Documents\Semester 6\FYP\Technical\model\target_scaler.pkl', 'rb') as f:
+    with open('target_scaler.pkl', 'rb') as f:
         target_scaler = pickle.load(f)
     
     return model, feature_scaler, target_scaler
