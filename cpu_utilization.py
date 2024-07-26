@@ -13,7 +13,7 @@ from tensorflow.keras.models import model_from_json, Sequential
 def load_model_without_time_major(filepath):
     with h5py.File(filepath, 'r') as f:
         model_config = f.attrs.get('model_config')
-        if model_config is None:
+        if (model_config is None):
             raise ValueError("No model config found in the file.")
         
         model_config = json.loads(model_config)
@@ -172,7 +172,6 @@ def main():
             # Plot the predictions
             st.subheader('Prediction Plot')
             fig, ax = plt.subplots(figsize=(12, 6))
-            ax.plot(test_input_df.index[-100:], test_input_df['avg_cpu'][-100:], label='True CPU Usage', color='blue')
             ax.scatter(predicted_df.index, predicted_df['predicted_avg_cpu'], label='Predicted CPU Usage', color='orange')
             ax.set_title('Predicted CPU Usage for the Next Time Point', fontsize=24)
             ax.set_xlabel('Time', fontsize=20)
