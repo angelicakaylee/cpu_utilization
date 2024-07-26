@@ -44,7 +44,7 @@ def load_model_without_time_major(filepath):
 
 def load_model_and_scalers():
     # Load the saved model and scalers
-    model = load_model_without_time_major('best_model.h5')
+    model = load_model_without_time_major('model_final.h5')
     
     with open('feature_scaler.pkl', 'rb') as f:
         feature_scaler = pickle.load(f)
@@ -149,37 +149,32 @@ def main():
             y_pred = model.predict(X_input[-1].reshape(1, window_size, -1))
             y_pred = target_scaler.inverse_transform(y_pred)
 
-            # Generate the timestamps for the predicted values
+            # Generate the timestamp for the predicted value
             last_actual_timestamp = test_input_df.index[-1]
-            predicted_timestamps = pd.date_range(start=last_actual_timestamp, periods=13, freq='5T')[1:]
+            predicted_timestamp = last_actual_timestamp + pd.Timedelta(minutes=5)
 
             # Create the predicted_df DataFrame
             predicted_df = pd.DataFrame({
-                'time': predicted_timestamps,
+                'time': [predicted_timestamp],
                 'predicted_avg_cpu': y_pred.flatten()
             })
             predicted_df.set_index('time', inplace=True)
 
-            # Identify the highest and lowest predicted values and their corresponding times
-            max_pred = predicted_df['predicted_avg_cpu'].max()
-            max_pred_time = predicted_df['predicted_avg_cpu'].idxmax()
-            min_pred = predicted_df['predicted_avg_cpu'].min()
-            min_pred_time = predicted_df['predicted_avg_cpu'].idxmin()
-
-            # Generate the advice based on the predictions
-            advice = f"<p style='font-size:24px;'>The highest predicted CPU usage is {max_pred:.2f} at {max_pred_time}. " \
-                     f"The lowest predicted CPU usage is {min_pred:.2f} at {min_pred_time}. " \
-                     "Administrators should prepare for the highest usage and monitor the system closely during this period.</p>"
+            # Generate the advice based on the prediction
+            predicted_value = predicted_df['predicted_avg_cpu'].iloc[0]
+            advice = f"<p style='font-size:24px;'>The predicted CPU usage at {predicted_timestamp} is {predicted_value:.2f}. " \
+                     "Administrators should monitor the system closely during this period.</p>"
 
             # Display the predictions
-            st.subheader('Predicted CPU Usage for the Next 12 Time Points')
+            st.subheader('Predicted CPU Usage for the Next Time Point')
             st.write(predicted_df)
 
             # Plot the predictions
             st.subheader('Prediction Plot')
-            fig, ax = plt.subplots(figsize=(18, 9))
-            ax.plot(predicted_df.index, predicted_df['predicted_avg_cpu'], label='Predicted CPU Usage', color='orange')
-            ax.set_title('Predicted CPU Usage for the Next 12 Time Points', fontsize=24)
+            fig, ax = plt.subplots(figsize=(12, 6))
+            ax.plot(test_input_df.index[-100:], test_input_df['avg_cpu'][-100:], label='True CPU Usage', color='blue')
+            ax.scatter(predicted_df.index, predicted_df['predicted_avg_cpu'], label='Predicted CPU Usage', color='orange')
+            ax.set_title('Predicted CPU Usage for the Next Time Point', fontsize=24)
             ax.set_xlabel('Time', fontsize=20)
             ax.set_ylabel('Predicted Average CPU Usage', fontsize=20)
             ax.legend(fontsize=20)
